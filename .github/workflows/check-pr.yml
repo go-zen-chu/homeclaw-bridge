@@ -1,0 +1,22 @@
+name: check-pr
+on:
+  pull_request:
+    types: [opened, synchronize]
+jobs:
+  check-go:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Golang
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ./go.mod
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+      - name: Run unit tests
+        run: go test -v ./internal/...
+      - name: Run e2e tests
+        run: go test -v ./test/e2e/...
