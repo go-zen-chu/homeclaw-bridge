@@ -2,7 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-zen-chu/homeclaw-bridge/internal/openclaw"
@@ -91,6 +91,10 @@ func (h *Handler) HandleAlexa(w http.ResponseWriter, r *http.Request) {
 	intentName := req.Request.Intent.Name
 	if intentName == "" {
 		// For LaunchRequest or SessionEndedRequest we have no intent to forward.
+		slog.Info("alexa launch or session-ended request received",
+			"remote_addr", r.RemoteAddr,
+			"request_type", req.Request.Type,
+		)
 		writeJSON(w, http.StatusOK, alexaResponse{
 			Version: "1.0",
 			Response: alexaRespBody{
@@ -103,6 +107,11 @@ func (h *Handler) HandleAlexa(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	slog.Info("alexa intent request received",
+		"remote_addr", r.RemoteAddr,
+		"intent_name", intentName,
+	)
 
 	cmdReq := openclaw.CommandRequest{
 		Command: intentName,
@@ -118,7 +127,10 @@ func (h *Handler) HandleAlexa(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.caller.SendCommand(r.Context(), cmdReq)
 	if err != nil {
-		log.Printf("ERROR: OpenClaw command failed for Alexa intent %q: %v", intentName, err)
+		slog.Error("openclaw command failed for alexa intent",
+			"intent_name", intentName,
+			"err", err,
+		)
 		writeJSON(w, http.StatusOK, alexaResponse{
 			Version: "1.0",
 			Response: alexaRespBody{
@@ -132,6 +144,10 @@ func (h *Handler) HandleAlexa(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	slog.Info("alexa intent request completed",
+		"intent_name", intentName,
+		"response_message", result.Message,
+	)
 	writeJSON(w, http.StatusOK, alexaResponse{
 		Version: "1.0",
 		Response: alexaRespBody{

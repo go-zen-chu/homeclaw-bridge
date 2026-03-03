@@ -2,7 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-zen-chu/homeclaw-bridge/internal/openclaw"
@@ -87,13 +87,21 @@ func (h *Handler) HandleGoogleHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	slog.Info("google home request received",
+		"remote_addr", r.RemoteAddr,
+		"handler_name", handlerName,
+	)
+
 	cmdReq := openclaw.CommandRequest{
 		Command: handlerName,
 	}
 
 	result, err := h.caller.SendCommand(r.Context(), cmdReq)
 	if err != nil {
-		log.Printf("ERROR: OpenClaw command failed for Google Home request %q: %v", handlerName, err)
+		slog.Error("openclaw command failed for google home request",
+			"handler_name", handlerName,
+			"err", err,
+		)
 		writeJSON(w, http.StatusOK, googleHomeResponse{
 			Prompt: &googleHomePrompt{
 				Override: false,
@@ -106,6 +114,10 @@ func (h *Handler) HandleGoogleHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	slog.Info("google home request completed",
+		"handler_name", handlerName,
+		"response_message", result.Message,
+	)
 	writeJSON(w, http.StatusOK, googleHomeResponse{
 		Prompt: &googleHomePrompt{
 			Override: false,

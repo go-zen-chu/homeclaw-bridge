@@ -9,7 +9,7 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -29,9 +29,11 @@ func main() {
 	mux.HandleFunc("/alexa", h.HandleAlexa)
 	mux.HandleFunc("/health", h.HandleHealth)
 
-	log.Printf("homeclaw-bridge listening on %s", addr)
-	log.Printf("forwarding requests to OpenClaw at %s", openClawURL)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	slog.Info("homeclaw-bridge starting", "listen_addr", addr, "openclaw_url", openClawURL)
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		slog.Error("server exited", "err", err)
+		os.Exit(1)
+	}
 }
 
 func envOrDefault(key, defaultVal string) string {
